@@ -1,63 +1,45 @@
 package portiva.backend.models;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 
 @Entity
 public class User {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  private Long userId;
 
-  @Column(name = "username", nullable = false)
+  @Column(nullable = false)
   private String username;
 
-  @Column(name = "first_name", nullable = false)
-  private String first_name;
+  @Column(nullable = false)
+  private String firstName;
 
-  @Column(name = "second_name", nullable = false)
-  private String second_name;
+  @Column(nullable = false)
+  private String secondName;
 
-  @Column (name = "bio", nullable = true)
   private String bio;
-
-  @Column(name = "email", nullable = false)
   private String email;
+  private String imageUrl;
 
-  @Column(name ="image_url", nullable = true)
-  private String image_url;
-
-  @OneToOne
-  @JoinColumn(name = "portfolio_id")
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
   private Portfolio portfolio;
-
-  public Long getId() {
-    return id;
-  }
-
-  public void setId(Long id) {
-    this.id = id;
-  }
 
   public String getUsername() {
     return username;
   }
 
-  public String getFirst_name() {
-    return first_name;
+  public String getSecondName() {
+    return secondName;
   }
 
-  public String getSecond_name() {
-    return second_name;
-  }
-
-  public String getBio() {
-    return bio;
+  public String getFirstName() {
+    return firstName;
   }
 
   public String getEmail() {
@@ -68,28 +50,24 @@ public class User {
     this.email = email;
   }
 
+  public String getBio() {
+    return bio;
+  }
+
   public void setBio(String bio) {
     this.bio = bio;
   }
 
-  public void setSecond_name(String second_name) {
-    this.second_name = second_name;
+  public void setFirstName(String firstName) {
+    this.firstName = firstName;
   }
 
-  public void setFirst_name(String first_name) {
-    this.first_name = first_name;
+  public String getImageUrl() {
+    return imageUrl;
   }
 
-  public void setUsername(String username) {
-    this.username = username;
-  }
-
-  public String getImage_url() {
-    return image_url;
-  }
-
-  public void setImage_url(String image_url) {
-    this.image_url = image_url;
+  public void setImageUrl(String imageUrl) {
+    this.imageUrl = imageUrl;
   }
 
   public Portfolio getPortfolio() {
@@ -98,5 +76,21 @@ public class User {
 
   public void setPortfolio(Portfolio portfolio) {
     this.portfolio = portfolio;
+  }
+
+  public void setSecondName(String secondName) {
+    this.secondName = secondName;
+  }
+
+  public void setUsername(String username) {
+    this.username = username;
+  }
+
+  public Long getUserId() {
+    return userId;
+  }
+
+  public void setUserId(Long userId) {
+    this.userId = userId;
   }
 }
