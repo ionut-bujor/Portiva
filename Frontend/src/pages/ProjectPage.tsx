@@ -20,7 +20,7 @@ const ProjectPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) { navigate("/login"); return; }
+    if (!token) { navigate("/"); return; }
 
     fetch(`${API_BASE}/dashboard`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -40,7 +40,7 @@ const ProjectPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={styles.loadingWrap}>
+      <div style={{ minHeight: "100vh", background: "#faf8f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <span style={{ fontSize: "2rem", color: "#c9b99a" }}>·</span>
       </div>
     );
@@ -48,15 +48,11 @@ const ProjectPage: React.FC = () => {
 
   if (error || !project) {
     return (
-      <div style={styles.loadingWrap}>
-        <div style={{ textAlign: "center" }}>
-          <p style={{ color: "#a09080", fontFamily: "Georgia, serif", fontStyle: "italic", marginBottom: "1rem" }}>
-            {error ?? "Project not found"}
-          </p>
-          <button style={styles.backBtn} onClick={() => navigate("/portfolio")}>
-            ← back to portfolio
-          </button>
-        </div>
+      <div style={{ minHeight: "100vh", background: "#faf8f5", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "1rem", fontFamily: "Georgia, serif" }}>
+        <p style={{ color: "#a09080", fontStyle: "italic" }}>{error ?? "Project not found"}</p>
+        <button style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.75rem", color: "#b0a090" }} onClick={() => navigate(-1)}>
+          ← go back
+        </button>
       </div>
     );
   }
@@ -64,55 +60,45 @@ const ProjectPage: React.FC = () => {
   const techs = project.technologiesUsed.split(",").map((t) => t.trim()).filter(Boolean);
 
   return (
-    <div style={styles.page}>
-      <div style={styles.grain} />
+    <div style={s.page}>
+      <div style={s.grain} />
 
-      {/* Nav */}
-      <nav style={styles.nav}>
-        <button style={styles.backBtn} onClick={() => navigate("/portfolio")}>
-          ← portfolio
-        </button>
-        <span style={styles.navLabel}>project</span>
+      <nav style={s.nav}>
+        <button style={s.backBtn} onClick={() => navigate(-1)}>← back</button>
+        <span style={s.navLabel}>project</span>
       </nav>
 
-      {/* Content */}
-      <main style={styles.main}>
-        {/* Title */}
-        <div style={styles.titleBlock}>
-          <p style={styles.label}>case study</p>
-          <h1 style={styles.title}>{project.projectName}</h1>
+      <main style={s.main}>
+        <div style={s.titleBlock}>
+          <p style={s.label}>case study</p>
+          <h1 style={s.title}>{project.projectName}</h1>
         </div>
 
-        {/* Thin rule */}
-        <div style={styles.rule} />
+        <div style={s.rule} />
 
-        {/* Description */}
-        <div style={styles.section}>
-          <p style={styles.sectionLabel}>about</p>
-          <p style={styles.descText}>{project.description}</p>
+        <div style={s.section}>
+          <p style={s.sectionLabel}>about</p>
+          <p style={s.descText}>{project.description}</p>
         </div>
 
-        {/* Tech stack */}
-        <div style={styles.section}>
-          <p style={styles.sectionLabel}>built with</p>
-          <div style={styles.techGrid}>
+        <div style={s.section}>
+          <p style={s.sectionLabel}>built with</p>
+          <div style={s.techGrid}>
             {techs.map((tech) => (
-              <div key={tech} style={styles.techCard}>
-                {tech}
-              </div>
+              <div key={tech} style={s.techCard}>{tech}</div>
             ))}
           </div>
         </div>
       </main>
 
-      <footer style={styles.footer}>
-        <span style={styles.footerText}>made with portiva</span>
+      <footer style={s.footer}>
+        <span style={s.footerText}>made with portiva</span>
       </footer>
     </div>
   );
 };
 
-const styles: Record<string, React.CSSProperties> = {
+const s: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
     background: "#faf8f5",
@@ -123,19 +109,11 @@ const styles: Record<string, React.CSSProperties> = {
   grain: {
     position: "fixed",
     inset: 0,
-    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E")`,
     backgroundRepeat: "repeat",
     backgroundSize: "128px",
     pointerEvents: "none",
     zIndex: 0,
-    opacity: 0.5,
-  },
-  loadingWrap: {
-    minHeight: "100vh",
-    background: "#faf8f5",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
   },
   nav: {
     position: "relative",
@@ -153,7 +131,6 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     fontSize: "0.75rem",
     color: "#a09080",
-    letterSpacing: "0.05em",
     fontFamily: "'Georgia', serif",
     padding: 0,
   },
@@ -171,9 +148,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0 auto",
     padding: "4rem 2rem 6rem",
   },
-  titleBlock: {
-    marginBottom: "2.5rem",
-  },
+  titleBlock: { marginBottom: "2.5rem" },
   label: {
     fontSize: "0.65rem",
     color: "#b0a090",
@@ -195,9 +170,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#e8e0d5",
     margin: "2.5rem 0",
   },
-  section: {
-    marginBottom: "3rem",
-  },
+  section: { marginBottom: "3rem" },
   sectionLabel: {
     fontSize: "0.65rem",
     color: "#b0a090",
@@ -211,7 +184,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#5a4a3a",
     lineHeight: 1.8,
     margin: 0,
-    fontFamily: "'Georgia', serif",
   },
   techGrid: {
     display: "flex",
@@ -226,7 +198,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "8px",
     padding: "0.5rem 1rem",
     fontFamily: "system-ui, sans-serif",
-    letterSpacing: "0.02em",
   },
   footer: {
     position: "relative",

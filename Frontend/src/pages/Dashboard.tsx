@@ -100,8 +100,8 @@ const Dashboard: React.FC = () => {
       <nav style={s.nav}>
         <span style={s.brand}>portiva</span>
         <div style={s.navRight}>
-          <button style={s.navBtn} onClick={() => navigate("/portfolio")}>
-            view portfolio ↗
+        <button style={s.navBtn} onClick={() => navigate(`/u/${profileData?.username}`)}>
+          view portfolio ↗
           </button>
           <button style={{ ...s.navBtn, ...s.navBtnSecondary }} onClick={() => navigate("/")}>
             ← explore
