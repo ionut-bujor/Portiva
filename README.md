@@ -21,7 +21,8 @@ A full-stack web application where users can create professional portfolios and 
 **Other Tools**
 
 * Docker
-* IntelliJ IDEA
+* Cursor
+* Claude
 
 ##  Features (MVP)
 
