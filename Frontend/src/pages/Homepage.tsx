@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { mockUser, mockPortfolios } from "../mockData";
+import React, { useEffect, useState } from "react";
+import { mockPortfolios } from "../mockData";
 import { FaFolderOpen, FaSearch, FaUser } from "react-icons/fa";
 
 const Homepage: React.FC = () => {
@@ -20,6 +20,21 @@ const Homepage: React.FC = () => {
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [regSuccessMessage, setRegSuccessMessage] = useState<string | null>(null);
+
+  const [authUsername, setAuthUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedUsername = localStorage.getItem("authUsername");
+    if (storedUsername) {
+      setAuthUsername(storedUsername);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("authUsername");
+    setAuthUsername(null);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +58,10 @@ const Homepage: React.FC = () => {
 
       const data = await response.json();
       localStorage.setItem("authToken", data.token);
+      if (data.username) {
+        localStorage.setItem("authUsername", data.username);
+        setAuthUsername(data.username);
+      }
       setLoginSuccessMessage("Logged in successfully!");
       setPassword("");
     } catch (err: any) {
@@ -80,6 +99,10 @@ const Homepage: React.FC = () => {
 
       const data = await response.json();
       localStorage.setItem("authToken", data.token);
+      if (data.username) {
+        localStorage.setItem("authUsername", data.username);
+        setAuthUsername(data.username);
+      }
       setRegSuccessMessage("Account created! You are now logged in.");
 
       // Optional: close the modal shortly after success
@@ -100,7 +123,7 @@ const Homepage: React.FC = () => {
         <header className="bg-gray-50 shadow-sm p-4 flex justify-between items-center sticky top-0 z-50">
           <h1 className="font-bold text-2xl text-gray-900">Portiva</h1>
 
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             {/* Explore Button */}
             <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-full text-gray-800 font-medium hover:bg-gray-100 transition">
               <FaFolderOpen />
@@ -113,18 +136,30 @@ const Homepage: React.FC = () => {
               My Portfolio
             </button>
 
-            {/* Login Button */}
-            <button
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-full text-gray-800 font-medium hover:bg-gray-100 transition"
-                onClick={() => setShowLogin(true)}
-            >
-              <FaSearch />
-              Login
-            </button>
+            {/* Login Button (hidden when logged in) */}
+            {!authUsername && (
+                <button
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-full text-gray-800 font-medium hover:bg-gray-100 transition"
+                    onClick={() => setShowLogin(true)}
+                >
+                  <FaSearch />
+                  Login
+                </button>
+            )}
+
+            {/* Logout Button (shown when logged in) */}
+            {authUsername && (
+                <button
+                    className="px-4 py-2 bg-red-500 text-white rounded-full text-sm font-medium hover:bg-red-600 transition"
+                    onClick={handleLogout}
+                >
+                  Log out
+                </button>
+            )}
           </div>
 
           <div className="text-gray-800 font-medium">
-            {mockUser.loggedIn ? `Hello, ${mockUser.name}` : "Hello, Guest"}
+            {authUsername ? `Hello, ${authUsername}` : "Hello, Guest"}
           </div>
         </header>
 
