@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { mockPortfolios } from "../mockData";
 import { FaFolderOpen, FaSearch, FaUser } from "react-icons/fa";
 
 const Homepage: React.FC = () => {
+  const navigate = useNavigate();
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
 
@@ -131,7 +133,16 @@ const Homepage: React.FC = () => {
             </button>
 
             {/* My Portfolio Button */}
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-full text-gray-800 font-medium hover:bg-gray-100 transition">
+            <button
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-full text-gray-800 font-medium hover:bg-gray-100 transition"
+                onClick={() => {
+                  if (authUsername) {
+                    navigate("/dashboard");
+                  } else {
+                    setShowLogin(true);
+                  }
+                }}
+            >
               <FaUser />
               My Portfolio
             </button>
