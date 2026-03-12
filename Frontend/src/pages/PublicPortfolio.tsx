@@ -74,8 +74,14 @@ const PublicPortfolio: React.FC = () => {
 
       {/* Nav */}
       <nav style={s.nav}>
-        <span style={s.navBrand}>portiva</span>
-      </nav>
+  <span style={s.navBrand}>portiva</span>
+  <button
+    style={{ background: "none", border: "1px solid #ddd5c8", borderRadius: "20px", padding: "0.4rem 1rem", fontSize: "0.72rem", color: "#6a5a4a", cursor: "pointer", fontFamily: "system-ui, sans-serif" }}
+    onClick={() => navigate("/")}
+  >
+    ← explore
+  </button>
+</nav>
 
       {/* Main layout */}
       <div style={s.layout}>
