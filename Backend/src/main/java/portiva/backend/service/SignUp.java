@@ -1,8 +1,8 @@
 package portiva.backend.service;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import portiva.backend.dtos.SignUpRequest;
 import portiva.backend.models.User;
 import portiva.backend.repositories.UserRepository;
@@ -38,6 +38,19 @@ public class SignUp {
     user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
     return userRepository.save(user);
+  }
+
+  public User authenticate(String email, String rawPassword) {
+    if (!StringUtils.hasText(email) || !StringUtils.hasText(rawPassword)) {
+      throw new IllegalArgumentException("Email and password are required");
+    }
+
+    User user = userRepository.findByEmail(email);
+    if (user == null || !passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+      throw new IllegalArgumentException("Invalid email or password");
+    }
+
+    return user;
   }
 
   private void validateRequest(SignUpRequest request) {
