@@ -4,17 +4,28 @@ import { FaFolderOpen, FaSearch, FaUser } from "react-icons/fa";
 
 const Homepage: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginSuccessMessage, setLoginSuccessMessage] = useState<string | null>(null);
+
+  const [regUsername, setRegUsername] = useState("");
+  const [regFirstName, setRegFirstName] = useState("");
+  const [regSecondName, setRegSecondName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
+  const [regSuccessMessage, setRegSuccessMessage] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setSuccessMessage(null);
-    setLoading(true);
+    setLoginError(null);
+    setLoginSuccessMessage(null);
+    setLoginLoading(true);
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -31,14 +42,54 @@ const Homepage: React.FC = () => {
       }
 
       const data = await response.json();
-      // For now, just store the token in localStorage and show a success message.
       localStorage.setItem("authToken", data.token);
-      setSuccessMessage("Logged in successfully!");
+      setLoginSuccessMessage("Logged in successfully!");
       setPassword("");
     } catch (err: any) {
-      setError(err.message || "Something went wrong");
+      setLoginError(err.message || "Something went wrong");
     } finally {
-      setLoading(false);
+      setLoginLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError(null);
+    setRegSuccessMessage(null);
+    setRegLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: regUsername,
+          firstName: regFirstName,
+          secondName: regSecondName,
+          email: regEmail,
+          password: regPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Registration failed");
+      }
+
+      const data = await response.json();
+      localStorage.setItem("authToken", data.token);
+      setRegSuccessMessage("Account created! You are now logged in.");
+
+      // Optional: close the modal shortly after success
+      setTimeout(() => {
+        setShowRegister(false);
+      }, 800);
+    } catch (err: any) {
+      setRegError(err.message || "Something went wrong");
+    } finally {
+      setRegLoading(false);
     }
   };
 
@@ -112,8 +163,8 @@ const Homepage: React.FC = () => {
                       className="text-gray-500 hover:text-gray-800"
                       onClick={() => {
                         setShowLogin(false);
-                        setError(null);
-                        setSuccessMessage(null);
+                        setLoginError(null);
+                        setLoginSuccessMessage(null);
                       }}
                   >
                     ✕
@@ -146,19 +197,19 @@ const Homepage: React.FC = () => {
                     />
                   </div>
 
-                  {error && (
-                      <p className="text-sm text-red-600">{error}</p>
+                  {loginError && (
+                      <p className="text-sm text-red-600">{loginError}</p>
                   )}
-                  {successMessage && (
-                      <p className="text-sm text-green-600">{successMessage}</p>
+                  {loginSuccessMessage && (
+                      <p className="text-sm text-green-600">{loginSuccessMessage}</p>
                   )}
 
                   <button
                       type="submit"
                       className="w-full py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-60"
-                      disabled={loading}
+                      disabled={loginLoading}
                   >
-                    {loading ? "Logging in..." : "Login"}
+                    {loginLoading ? "Logging in..." : "Login"}
                   </button>
                 </form>
 
@@ -167,12 +218,128 @@ const Homepage: React.FC = () => {
                   <button
                       className="ml-1 text-indigo-600 hover:text-indigo-700 font-medium"
                       onClick={() => {
-                        // For now we just close login; later we can open a register popup.
                         setShowLogin(false);
-                        // placeholder for future register flow
+                        setShowRegister(true);
                       }}
                   >
                     Register
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+
+        {/* Register Popup */}
+        {showRegister && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800">Register</h2>
+                  <button
+                      className="text-gray-500 hover:text-gray-800"
+                      onClick={() => {
+                        setShowRegister(false);
+                        setRegError(null);
+                        setRegSuccessMessage(null);
+                      }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form className="space-y-3" onSubmit={handleRegister}>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        First name
+                      </label>
+                      <input
+                          type="text"
+                          value={regFirstName}
+                          onChange={(e) => setRegFirstName(e.target.value)}
+                          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none"
+                          required
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Last name
+                      </label>
+                      <input
+                          type="text"
+                          value={regSecondName}
+                          onChange={(e) => setRegSecondName(e.target.value)}
+                          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none"
+                          required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Username
+                    </label>
+                    <input
+                        type="text"
+                        value={regUsername}
+                        onChange={(e) => setRegUsername(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none"
+                        required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
+                    <input
+                        type="email"
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none"
+                        required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password
+                    </label>
+                    <input
+                        type="password"
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none"
+                        required
+                    />
+                  </div>
+
+                  {regError && (
+                      <p className="text-sm text-red-600">{regError}</p>
+                  )}
+                  {regSuccessMessage && (
+                      <p className="text-sm text-green-600">{regSuccessMessage}</p>
+                  )}
+
+                  <button
+                      type="submit"
+                      className="w-full py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-60"
+                      disabled={regLoading}
+                  >
+                    {regLoading ? "Creating account..." : "Create account"}
+                  </button>
+                </form>
+
+                <div className="mt-4 text-center text-sm text-gray-600">
+                  <span>Already have an account?</span>
+                  <button
+                      className="ml-1 text-indigo-600 hover:text-indigo-700 font-medium"
+                      onClick={() => {
+                        setShowRegister(false);
+                        setShowLogin(true);
+                      }}
+                  >
+                    Login
                   </button>
                 </div>
               </div>
