@@ -14,7 +14,7 @@ public class User {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long userId;
 
-  @Column(nullable = false)
+  @Column(nullable = false, unique = true)
   private String username;
 
   @Column(nullable = false)
@@ -24,7 +24,13 @@ public class User {
   private String secondName;
 
   private String bio;
+
+  @Column(nullable = false, unique = true)
   private String email;
+
+  @Column(nullable = false)
+  private String passwordHash;
+
   private String imageUrl;
 
   @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
@@ -48,6 +54,14 @@ public class User {
 
   public void setEmail(String email) {
     this.email = email;
+  }
+
+  public String getPasswordHash() {
+    return passwordHash;
+  }
+
+  public void setPasswordHash(String passwordHash) {
+    this.passwordHash = passwordHash;
   }
 
   public String getBio() {
