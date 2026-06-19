@@ -7,7 +7,11 @@ interface Project {
   projectId: number;
   projectName: string;
   description: string;
+  longDescription: string;
   technologiesUsed: string;
+  imageUrl: string;
+  githubUrl: string;
+  demoUrl: string;
 }
 
 interface DashboardData {
@@ -19,12 +23,20 @@ interface DashboardData {
   bio: string;
   headline: string;
   website: string;
-  projects?: Project[];
 }
+
+const emptyForm = {
+  projectName: "",
+  description: "",
+  longDescription: "",
+  technologiesUsed: "",
+  imageUrl: "",
+  githubUrl: "",
+  demoUrl: "",
+};
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const username = localStorage.getItem("authUsername");
   const token = localStorage.getItem("authToken");
 
   const [profileData, setProfileData] = useState<DashboardData | null>(null);
@@ -37,29 +49,40 @@ const Dashboard: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [formSaving, setFormSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
   useEffect(() => {
     if (!token) { navigate("/"); return; }
-
-    const fetchDashboard = async () => {
+    const fetchAll = async () => {
       try {
-        const res = await fetch(`${API_BASE}/dashboard`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.status === 401 || res.status === 403) { navigate("/"); return; }
-        if (!res.ok) throw new Error("Failed to load profile");
-        const data: DashboardData = await res.json();
+        const [profileRes, projectsRes] = await Promise.all([
+          fetch(`${API_BASE}/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/projects`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (profileRes.status === 401 || profileRes.status === 403) { navigate("/"); return; }
+        if (!profileRes.ok) throw new Error("Failed to load profile");
+        const data: DashboardData = await profileRes.json();
         setProfileData(data);
         setHeadline(data.headline || "");
         setBio(data.bio || "");
         setWebsite(data.website || "");
-      } catch (err) {
+        if (projectsRes.ok) {
+          const proj: Project[] = await projectsRes.json();
+          setProjects(proj);
+        }
+      } catch {
         setErrorMessage("Could not load your profile. Please try again.");
       } finally {
         setLoading(false);
       }
     };
-
-    fetchDashboard();
+    fetchAll();
   }, [token, navigate]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -70,16 +93,10 @@ const Dashboard: React.FC = () => {
     try {
       const res = await fetch(`${API_BASE}/dashboard`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ bio, headline, website }),
       });
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || "Failed to save profile");
-      }
+      if (!res.ok) throw new Error((await res.text()) || "Failed to save profile");
       const updated: DashboardData = await res.json();
       setProfileData(updated);
       setSavedMessage("Profile saved.");
@@ -90,18 +107,90 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const openNewForm = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const openEditForm = (p: Project) => {
+    setEditingId(p.projectId);
+    setForm({
+      projectName: p.projectName,
+      description: p.description,
+      longDescription: p.longDescription || "",
+      technologiesUsed: p.technologiesUsed,
+      imageUrl: p.imageUrl || "",
+      githubUrl: p.githubUrl || "",
+      demoUrl: p.demoUrl || "",
+    });
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(emptyForm);
+    setFormError(null);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.projectName.trim()) { setFormError("Project name is required."); return; }
+    setFormSaving(true);
+    setFormError(null);
+    try {
+      const url = editingId ? `${API_BASE}/projects/${editingId}` : `${API_BASE}/projects`;
+      const method = editingId ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error((await res.text()) || "Failed to save project");
+      const saved: Project = await res.json();
+      if (editingId) {
+        setProjects(prev => prev.map(p => p.projectId === editingId ? saved : p));
+      } else {
+        setProjects(prev => [...prev, saved]);
+      }
+      closeForm();
+    } catch (err: any) {
+      setFormError(err.message || "Something went wrong.");
+    } finally {
+      setFormSaving(false);
+    }
+  };
+
+  const handleDelete = async (projectId: number) => {
+    setDeletingId(projectId);
+    try {
+      const res = await fetch(`${API_BASE}/projects/${projectId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to delete project");
+      setProjects(prev => prev.filter(p => p.projectId !== projectId));
+    } catch {
+      // silently fail
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const publicUrl = `http://localhost:5173/u/${profileData?.username}`;
 
   return (
     <div style={s.page}>
       <div style={s.grain} />
 
-      {/* Nav */}
       <nav style={s.nav}>
         <span style={s.brand}>portiva</span>
         <div style={s.navRight}>
-        <button style={s.navBtn} onClick={() => navigate(`/u/${profileData?.username}`)}>
-          view portfolio ↗
+          <button style={s.navBtn} onClick={() => navigate(`/u/${profileData?.username}`)}>
+            view portfolio ↗
           </button>
           <button style={{ ...s.navBtn, ...s.navBtnSecondary }} onClick={() => navigate("/")}>
             ← explore
@@ -109,17 +198,15 @@ const Dashboard: React.FC = () => {
         </div>
       </nav>
 
-      {/* Main */}
       <main style={s.main}>
         {loading ? (
           <p style={s.loadingText}>Loading…</p>
         ) : (
           <>
-            {/* Welcome */}
             <div style={s.welcomeBlock}>
               <p style={s.eyebrow}>dashboard</p>
               <h1 style={s.pageTitle}>
-                {profileData?.firstName ? `hello, ${profileData.firstName}.` : `hello, ${username}.`}
+                {profileData?.firstName ? `hello, ${profileData.firstName}.` : "hello."}
               </h1>
             </div>
 
@@ -146,54 +233,27 @@ const Dashboard: React.FC = () => {
             <section style={s.card}>
               <h2 style={s.cardTitle}>profile</h2>
               <p style={s.cardSub}>this information appears on your public portfolio page.</p>
-
               <form style={s.form} onSubmit={handleSaveProfile}>
                 <div style={s.formGrid}>
                   <div style={s.field}>
-                    <label style={s.label}>display name</label>
-                    <input
-                      style={{ ...s.input, ...s.inputDisabled }}
-                      type="text"
-                      value={profileData?.username ?? ""}
-                      disabled
-                    />
+                    <label style={s.label}>username</label>
+                    <input style={{ ...s.input, ...s.inputDisabled }} type="text" value={profileData?.username ?? ""} disabled />
                   </div>
                   <div style={s.field}>
                     <label style={s.label}>headline</label>
-                    <input
-                      style={s.input}
-                      type="text"
-                      value={headline}
-                      onChange={(e) => setHeadline(e.target.value)}
-                      placeholder="Frontend engineer, designer, builder"
-                    />
+                    <input style={s.input} type="text" value={headline} onChange={e => setHeadline(e.target.value)} placeholder="Full-stack engineer, builder, tinkerer" />
                   </div>
                 </div>
-
                 <div style={s.field}>
                   <label style={s.label}>bio</label>
-                  <textarea
-                    style={{ ...s.input, ...s.textarea }}
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Tell visitors who you are and what you build."
-                  />
+                  <textarea style={{ ...s.input, ...s.textarea }} value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell visitors who you are and what you build." />
                 </div>
-
                 <div style={s.field}>
                   <label style={s.label}>website or main link</label>
-                  <input
-                    style={s.input}
-                    type="url"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
-                    placeholder="https://"
-                  />
+                  <input style={s.input} type="url" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://" />
                 </div>
-
                 {savedMessage && <p style={s.successMsg}>{savedMessage}</p>}
                 {errorMessage && <p style={s.errorMsg}>{errorMessage}</p>}
-
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <button style={s.submitBtn} type="submit" disabled={saving}>
                     {saving ? "saving…" : "save profile"}
@@ -204,9 +264,151 @@ const Dashboard: React.FC = () => {
 
             {/* Projects */}
             <section style={s.card}>
-              <h2 style={s.cardTitle}>projects</h2>
-              <p style={s.cardSub}>add projects that appear on your public portfolio.</p>
-              <button style={s.btn}>add new project</button>
+              <div style={s.cardHeader}>
+                <div>
+                  <h2 style={s.cardTitle}>projects</h2>
+                  <p style={s.cardSub}>add projects that appear on your public portfolio.</p>
+                </div>
+                {!showForm && (
+                  <button style={s.submitBtn} onClick={openNewForm}>+ add project</button>
+                )}
+              </div>
+
+              {showForm && (
+                <div style={s.projectForm}>
+                  <p style={s.formHeading}>{editingId ? "edit project" : "new project"}</p>
+                  <form onSubmit={handleFormSubmit} style={s.form}>
+
+                    <div style={s.field}>
+                      <label style={s.label}>project name</label>
+                      <input
+                        style={s.input}
+                        type="text"
+                        value={form.projectName}
+                        onChange={e => setForm(f => ({ ...f, projectName: e.target.value }))}
+                        placeholder="My Awesome Project"
+                        autoFocus
+                      />
+                    </div>
+
+                    <div style={s.field}>
+                      <label style={s.label}>short description</label>
+                      <textarea
+                        style={{ ...s.input, ...s.textareaShort }}
+                        value={form.description}
+                        onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                        placeholder="One or two sentences — shown on the project card."
+                      />
+                    </div>
+
+                    <div style={s.field}>
+                      <label style={s.label}>full write-up</label>
+                      <textarea
+                        style={{ ...s.input, ...s.textarea }}
+                        value={form.longDescription}
+                        onChange={e => setForm(f => ({ ...f, longDescription: e.target.value }))}
+                        placeholder="The full story — what problem you solved, how you built it, what you learned. Shown on the project page."
+                      />
+                    </div>
+
+                    <div style={s.field}>
+                      <label style={s.label}>technologies used</label>
+                      <input
+                        style={s.input}
+                        type="text"
+                        value={form.technologiesUsed}
+                        onChange={e => setForm(f => ({ ...f, technologiesUsed: e.target.value }))}
+                        placeholder="React, TypeScript, PostgreSQL"
+                      />
+                    </div>
+
+                    <div style={s.formGrid}>
+                      <div style={s.field}>
+                        <label style={s.label}>cover image URL</label>
+                        <input
+                          style={s.input}
+                          type="url"
+                          value={form.imageUrl}
+                          onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))}
+                          placeholder="https://i.imgur.com/..."
+                        />
+                      </div>
+                      <div style={s.field}>
+                        <label style={s.label}>github URL</label>
+                        <input
+                          style={s.input}
+                          type="url"
+                          value={form.githubUrl}
+                          onChange={e => setForm(f => ({ ...f, githubUrl: e.target.value }))}
+                          placeholder="https://github.com/..."
+                        />
+                      </div>
+                    </div>
+
+                    <div style={s.field}>
+                      <label style={s.label}>live demo URL</label>
+                      <input
+                        style={s.input}
+                        type="url"
+                        value={form.demoUrl}
+                        onChange={e => setForm(f => ({ ...f, demoUrl: e.target.value }))}
+                        placeholder="https://..."
+                      />
+                    </div>
+
+                    {/* Image preview */}
+                    {form.imageUrl && (
+                      <div style={s.field}>
+                        <label style={s.label}>preview</label>
+                        <img
+                          src={form.imageUrl}
+                          alt="cover preview"
+                          style={s.imagePreview}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      </div>
+                    )}
+
+                    {formError && <p style={s.errorMsg}>{formError}</p>}
+                    <div style={s.formActions}>
+                      <button type="button" style={s.btn} onClick={closeForm}>cancel</button>
+                      <button type="submit" style={s.submitBtn} disabled={formSaving}>
+                        {formSaving ? "saving…" : editingId ? "save changes" : "add project"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {projects.length === 0 && !showForm ? (
+                <p style={s.emptyState}>no projects yet. add one above.</p>
+              ) : (
+                <div style={s.projectList}>
+                  {projects.map(p => (
+                    <div key={p.projectId} style={s.projectRow}>
+                      {p.imageUrl && (
+                        <img src={p.imageUrl} alt={p.projectName} style={s.projectThumb} />
+                      )}
+                      <div style={s.projectInfo}>
+                        <span style={s.projectName}>{p.projectName}</span>
+                        {p.technologiesUsed && (
+                          <span style={s.projectTech}>{p.technologiesUsed}</span>
+                        )}
+                      </div>
+                      <div style={s.projectActions}>
+                        <button style={s.btn} onClick={() => openEditForm(p)}>edit</button>
+                        <button
+                          style={{ ...s.btn, ...s.btnDanger }}
+                          onClick={() => handleDelete(p.projectId)}
+                          disabled={deletingId === p.projectId}
+                        >
+                          {deletingId === p.projectId ? "…" : "delete"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </>
         )}
@@ -256,11 +458,7 @@ const s: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     fontFamily: "system-ui, sans-serif",
   },
-  navRight: {
-    display: "flex",
-    gap: "0.75rem",
-    alignItems: "center",
-  },
+  navRight: { display: "flex", gap: "0.75rem", alignItems: "center" },
   navBtn: {
     background: "#2a2420",
     border: "1px solid #2a2420",
@@ -272,11 +470,7 @@ const s: Record<string, React.CSSProperties> = {
     fontFamily: "system-ui, sans-serif",
     letterSpacing: "0.03em",
   },
-  navBtnSecondary: {
-    background: "none",
-    borderColor: "#ddd5c8",
-    color: "#6a5a4a",
-  },
+  navBtnSecondary: { background: "none", borderColor: "#ddd5c8", color: "#6a5a4a" },
   main: {
     position: "relative",
     zIndex: 1,
@@ -285,14 +479,8 @@ const s: Record<string, React.CSSProperties> = {
     padding: "4rem 2rem 6rem",
     boxSizing: "border-box",
   },
-  loadingText: {
-    color: "#b0a090",
-    fontStyle: "italic",
-    fontSize: "0.9rem",
-  },
-  welcomeBlock: {
-    marginBottom: "3rem",
-  },
+  loadingText: { color: "#b0a090", fontStyle: "italic", fontSize: "0.9rem" },
+  welcomeBlock: { marginBottom: "3rem" },
   eyebrow: {
     fontSize: "0.65rem",
     color: "#b0a090",
@@ -317,6 +505,12 @@ const s: Record<string, React.CSSProperties> = {
     marginBottom: "1.25rem",
     boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
   },
+  cardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: "0.25rem",
+  },
   cardTitle: {
     fontSize: "0.95rem",
     fontWeight: 400,
@@ -331,11 +525,7 @@ const s: Record<string, React.CSSProperties> = {
     fontFamily: "system-ui, sans-serif",
     lineHeight: 1.5,
   },
-  linkRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-  },
+  linkRow: { display: "flex", alignItems: "center", gap: "0.75rem" },
   linkDisplay: {
     flex: 1,
     padding: "0.6rem 0.85rem",
@@ -349,21 +539,9 @@ const s: Record<string, React.CSSProperties> = {
     textOverflow: "ellipsis",
     whiteSpace: "nowrap" as const,
   },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-  },
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "1rem",
-  },
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.4rem",
-  },
+  form: { display: "flex", flexDirection: "column", gap: "1rem" },
+  formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" },
+  field: { display: "flex", flexDirection: "column", gap: "0.4rem" },
   label: {
     fontSize: "0.65rem",
     color: "#a09080",
@@ -383,16 +561,25 @@ const s: Record<string, React.CSSProperties> = {
     boxSizing: "border-box" as const,
     width: "100%",
   },
-  inputDisabled: {
-    background: "#faf8f5",
-    color: "#b0a090",
-    cursor: "not-allowed",
-  },
+  inputDisabled: { background: "#faf8f5", color: "#b0a090", cursor: "not-allowed" },
   textarea: {
-    minHeight: "96px",
+    minHeight: "120px",
     resize: "vertical" as const,
     fontFamily: "'Georgia', serif",
     lineHeight: 1.6,
+  },
+  textareaShort: {
+    minHeight: "72px",
+    resize: "vertical" as const,
+    fontFamily: "system-ui, sans-serif",
+    lineHeight: 1.6,
+  },
+  imagePreview: {
+    width: "100%",
+    maxHeight: "200px",
+    objectFit: "cover",
+    borderRadius: "8px",
+    border: "1px solid #ece5dc",
   },
   btn: {
     padding: "0.5rem 1.1rem",
@@ -406,10 +593,8 @@ const s: Record<string, React.CSSProperties> = {
     letterSpacing: "0.03em",
     flexShrink: 0,
   },
-  btnSuccess: {
-    borderColor: "#a8c5a0",
-    color: "#507a50",
-  },
+  btnSuccess: { borderColor: "#a8c5a0", color: "#507a50" },
+  btnDanger: { borderColor: "#d4b0b0", color: "#a05050" },
   submitBtn: {
     padding: "0.6rem 1.5rem",
     background: "#2a2420",
@@ -421,27 +606,69 @@ const s: Record<string, React.CSSProperties> = {
     fontFamily: "system-ui, sans-serif",
     letterSpacing: "0.03em",
   },
-  successMsg: {
-    fontSize: "0.75rem",
-    color: "#507a50",
-    fontStyle: "italic",
-    margin: 0,
-    fontFamily: "system-ui, sans-serif",
+  successMsg: { fontSize: "0.75rem", color: "#507a50", fontStyle: "italic", margin: 0, fontFamily: "system-ui, sans-serif" },
+  errorMsg: { fontSize: "0.75rem", color: "#a05050", fontStyle: "italic", margin: 0, fontFamily: "system-ui, sans-serif" },
+  projectForm: {
+    background: "#faf8f5",
+    border: "1px solid #ece5dc",
+    borderRadius: "12px",
+    padding: "1.25rem",
+    marginBottom: "1rem",
   },
-  errorMsg: {
-    fontSize: "0.75rem",
-    color: "#a05050",
-    fontStyle: "italic",
-    margin: 0,
+  formHeading: {
+    fontSize: "0.72rem",
+    color: "#a09080",
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
     fontFamily: "system-ui, sans-serif",
+    margin: "0 0 1rem",
   },
-  footer: {
-    position: "relative",
-    zIndex: 1,
+  formActions: { display: "flex", gap: "0.5rem", justifyContent: "flex-end" },
+  projectList: { display: "flex", flexDirection: "column", gap: "0.5rem" },
+  projectRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+    padding: "0.75rem 1rem",
+    border: "1px solid #ece5dc",
+    borderRadius: "10px",
+    background: "#faf8f5",
+  },
+  projectThumb: {
+    width: "48px",
+    height: "36px",
+    objectFit: "cover",
+    borderRadius: "6px",
+    flexShrink: 0,
+    border: "1px solid #ece5dc",
+  },
+  projectInfo: { display: "flex", flexDirection: "column", gap: "0.2rem", flex: 1, minWidth: 0 },
+  projectName: {
+    fontSize: "0.88rem",
+    color: "#2a2420",
+    fontFamily: "'Georgia', serif",
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  projectTech: {
+    fontSize: "0.7rem",
+    color: "#a09080",
+    fontFamily: "system-ui, sans-serif",
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  projectActions: { display: "flex", gap: "0.4rem", flexShrink: 0 },
+  emptyState: {
+    fontSize: "0.8rem",
+    color: "#b0a090",
+    fontStyle: "italic",
+    fontFamily: "system-ui, sans-serif",
     textAlign: "center",
-    padding: "1.5rem",
-    borderTop: "1px solid #ece5dc",
+    padding: "1.5rem 0 0.5rem",
   },
+  footer: { position: "relative", zIndex: 1, textAlign: "center", padding: "1.5rem", borderTop: "1px solid #ece5dc" },
   footerText: {
     fontSize: "0.65rem",
     color: "#c0b0a0",

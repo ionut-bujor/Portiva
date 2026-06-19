@@ -8,6 +8,9 @@ interface Project {
   projectName: string;
   description: string;
   technologiesUsed: string;
+  imageUrl: string;
+  githubUrl: string;
+  demoUrl: string;
 }
 
 interface ProfileData {
@@ -72,20 +75,17 @@ const PublicPortfolio: React.FC = () => {
     <div style={s.page}>
       <div style={s.grain} />
 
-      {/* Nav */}
       <nav style={s.nav}>
-  <span style={s.navBrand}>portiva</span>
-  <button
-    style={{ background: "none", border: "1px solid #ddd5c8", borderRadius: "20px", padding: "0.4rem 1rem", fontSize: "0.72rem", color: "#6a5a4a", cursor: "pointer", fontFamily: "system-ui, sans-serif" }}
-    onClick={() => navigate("/")}
-  >
-    ← explore
-  </button>
-</nav>
+        <span style={s.navBrand}>portiva</span>
+        <button
+          style={{ background: "none", border: "1px solid #ddd5c8", borderRadius: "20px", padding: "0.4rem 1rem", fontSize: "0.72rem", color: "#6a5a4a", cursor: "pointer", fontFamily: "system-ui, sans-serif" }}
+          onClick={() => navigate("/")}
+        >
+          ← explore
+        </button>
+      </nav>
 
-      {/* Main layout */}
       <div style={s.layout}>
-
         {/* Sidebar */}
         <aside style={s.sidebar}>
           <div style={s.avatarWrap}>
@@ -125,23 +125,24 @@ const PublicPortfolio: React.FC = () => {
                 const barColor = cardBarColors[project.projectId % cardBarColors.length];
 
                 return (
-                  <button
-                    key={project.projectId}
-                    style={s.card}
-                    onClick={() => navigate(`/u/${username}/${slug}`)}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
-                      (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 32px rgba(0,0,0,0.1)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                      (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)";
-                    }}
-                  >
-                    <div style={{ ...s.cardBar, background: barColor }} />
+                  <div key={project.projectId} style={s.card}>
+                    {/* Cover image or colour bar */}
+                    {project.imageUrl ? (
+                      <div style={s.cardImageWrap}>
+                        <img
+                          src={project.imageUrl}
+                          alt={project.projectName}
+                          style={s.cardImage}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ ...s.cardBar, background: barColor }} />
+                    )}
+
                     <div style={s.cardBody}>
                       <h3 style={s.cardTitle}>{project.projectName}</h3>
                       <p style={s.cardDesc}>{project.description}</p>
+
                       <div style={s.techRow}>
                         {techs.slice(0, 3).map((t) => (
                           <span key={t} style={s.techPill}>{t}</span>
@@ -150,8 +151,52 @@ const PublicPortfolio: React.FC = () => {
                           <span style={s.techPill}>+{techs.length - 3}</span>
                         )}
                       </div>
+
+                      {/* Links row */}
+                      <div style={s.cardLinks}>
+                        <button
+                          style={s.cardLinkBtn}
+                          onClick={() => navigate(`/u/${username}/${slug}`)}
+                        >
+                          read more →
+                        </button>
+                        <div style={s.externalLinks}>
+                          {project.githubUrl && (
+                            <a
+                              href={project.githubUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={s.iconLink}
+                              onClick={(e) => e.stopPropagation()}
+                              title="View on GitHub"
+                            >
+                              {/* GitHub icon */}
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+                              </svg>
+                            </a>
+                          )}
+                          {project.demoUrl && (
+                            <a
+                              href={project.demoUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={s.iconLink}
+                              onClick={(e) => e.stopPropagation()}
+                              title="Live demo"
+                            >
+                              {/* External link icon */}
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                              </svg>
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -302,7 +347,7 @@ const s: Record<string, React.CSSProperties> = {
   emptyText: { color: "#b0a090", fontStyle: "italic", fontSize: "0.9rem", margin: 0 },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
     gap: "1.25rem",
     width: "100%",
   },
@@ -311,15 +356,26 @@ const s: Record<string, React.CSSProperties> = {
     border: "1px solid #ece5dc",
     borderRadius: "12px",
     overflow: "hidden",
-    cursor: "pointer",
     textAlign: "left",
-    padding: 0,
-    transition: "transform 0.2s ease, box-shadow 0.2s ease",
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
   },
-  cardBar: { height: "4px", width: "100%" },
-  cardBody: { padding: "1.25rem" },
+  cardImageWrap: {
+    width: "100%",
+    height: "160px",
+    overflow: "hidden",
+  },
+  cardImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    display: "block",
+    transition: "transform 0.3s ease",
+  },
+  cardBar: { height: "4px", width: "100%", flexShrink: 0 },
+  cardBody: { padding: "1.25rem", display: "flex", flexDirection: "column", flex: 1 },
   cardTitle: {
     fontSize: "0.95rem",
     fontWeight: 400,
@@ -337,8 +393,9 @@ const s: Record<string, React.CSSProperties> = {
     WebkitBoxOrient: "vertical",
     overflow: "hidden",
     fontFamily: "system-ui, sans-serif",
+    flex: 1,
   },
-  techRow: { display: "flex", flexWrap: "wrap", gap: "6px" },
+  techRow: { display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "1rem" },
   techPill: {
     fontSize: "0.62rem",
     color: "#8a7a6a",
@@ -348,6 +405,35 @@ const s: Record<string, React.CSSProperties> = {
     padding: "2px 8px",
     fontFamily: "system-ui, sans-serif",
     letterSpacing: "0.03em",
+  },
+  cardLinks: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: "auto",
+    paddingTop: "0.75rem",
+    borderTop: "1px solid #f0e8e0",
+  },
+  cardLinkBtn: {
+    background: "none",
+    border: "none",
+    padding: 0,
+    fontSize: "0.72rem",
+    color: "#8a7a6a",
+    cursor: "pointer",
+    fontFamily: "system-ui, sans-serif",
+    letterSpacing: "0.03em",
+  },
+  externalLinks: { display: "flex", gap: "0.5rem", alignItems: "center" },
+  iconLink: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#a09080",
+    textDecoration: "none",
+    padding: "4px",
+    borderRadius: "4px",
+    transition: "color 0.15s ease",
   },
   footer: {
     position: "relative",
